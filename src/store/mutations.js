@@ -1,3 +1,13 @@
+import * as mutations from './mutations'
+
+let timestamp = null
+
+export default stamp => {
+  timestamp = stamp
+
+  return mutations
+}
+
 // User
 export const SET_CURRENT_USER = (state, user) => {
   state.currentUser = user
@@ -20,20 +30,18 @@ export const SET_USER_LOCALE = (state, locale) => {
 
 // Connection
 
-export const SET_ONLINE = state => {
-  state.online = true
+export const CONNECTED = (state, stamp) => {
+  if (stamp === timestamp) {
+    state.connected = true
+    state.connectionError = null
+  }
 }
 
-export const SET_OFFLINE = state => {
-  state.online = false
-}
-
-export const SET_WAITING_FOR_CONNECTION = state => {
-  state.waitingForConnection = true
-}
-
-export const UNSET_WAITING_FOR_CONNECTION = state => {
-  state.waitingForConnection = false
+export const CONNECTION_ERROR = (state, { stamp, error }) => {
+  if (stamp === timestamp) {
+    state.connectionError = error
+    state.connected = false
+  }
 }
 
 // Documents

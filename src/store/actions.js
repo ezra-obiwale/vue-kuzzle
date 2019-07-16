@@ -3,13 +3,11 @@ import * as actions from './actions'
 let kuzzle = null
 let jwtStorageKey = null
 let defaultIndex = null
-let connected = false
 
 export default Vue => {
   kuzzle = Vue.prototype.$kuzzle
   jwtStorageKey = Vue.prototype._kuzzle_jwt_storage_key
   defaultIndex = Vue.prototype._kuzzle_default_index
-  connected = Vue.prototype._kuzzle_is_connected
 
   return actions
 }
@@ -23,7 +21,10 @@ const getIndex = (index, state) => {
 
 let filteredId = null
 
-const subscribe = async (index, collection, { commit, state }, id = null) => {
+const subscribe = async (index, collection, {
+  commit,
+  state
+}, id = null) => {
   if (state.index === getIndex(index, state) && state.collection === collection && filteredId === id) {
     return
   }
@@ -47,31 +48,36 @@ const unsubscribe = () => {
   if (!subscriptionRoomId) {
     return
   }
-  checkConnection()
+  checkConnection(state)
   kuzzle.realtime.unsubscribe(subscriptionRoomId)
 }
 
-const checkConnection = () => {
-  if (!connected) {
+const checkConnection = state => {
+  if (!state.connected) {
     throw new Error('Server not connected')
   }
 }
 
 // Auth
-export const REGISTER = async (_, user) => {
-  checkConnection()
+export const REGISTER = async ({
+  state
+}, user) => {
+  checkConnection(state)
   const createdUser = await kuzzle.security.createUser(null, user)
   return createdUser
 }
 
-export const SEND_PASSWORD_RESET_EMAIL = async (_, email) => {
-  checkConnection()
+export const SEND_PASSWORD_RESET_EMAIL = async ({
+  state
+}, email) => {
+  checkConnection(state)
 }
 
 export const LOGIN = async ({
-  dispatch
+  dispatch,
+  state
 }, credentials) => {
-  checkConnection()
+  checkConnection(state)
   try {
     const jwt = await kuzzle.auth.login('local', credentials, '7 days')
     localStorage.setItem(jwtStorageKey, jwt)
@@ -93,7 +99,7 @@ export const CHECK_TOKEN = async ({
     return false
   }
 
-  checkConnection()
+  checkConnection(state)
 
   const {
     valid
@@ -114,11 +120,14 @@ export const CHECK_TOKEN = async ({
 }
 
 export const FETCH_CURRENT_USER = async ({
-  commit
+  commit,
+  state
 }) => {
-  checkConnection()
+  checkConnection(state)
   const currentUser = await kuzzle.auth.getCurrentUser()
-  commit('SET_CURRENT_USER', { ...currentUser })
+  commit('SET_CURRENT_USER', {
+    ...currentUser
+  })
   return currentUser
 }
 
@@ -135,8 +144,10 @@ export const LOG_OUT = async ({
   return true
 }
 
-export const UPDATE_PASSWORD = async (_, password) => {
-  checkConnection()
+export const UPDATE_PASSWORD = async ({
+  state
+}, password) => {
+  checkConnection(state)
   const creds = await kuzzle.auth.updateMyCredentials('local', {
     password
   })
@@ -144,26 +155,30 @@ export const UPDATE_PASSWORD = async (_, password) => {
 }
 
 export const UPDATE_SELF = async ({
-  commit
+  commit,
+  state
 }, data) => {
-  checkConnection()
+  checkConnection(state)
   const user = await kuzzle.auth.updateSelf(data)
   commit('SET_CURRENT_USER', user)
   return user
 }
 
-export const UPDATE_USER = async (_, {
+export const UPDATE_USER = async ({
+  state
+}, {
   id,
   data
 }) => {
-  checkConnection()
+  checkConnection(state)
   return kuzzle.security.updateUser(id, data)
 }
 
 export const SAVE_USER_LOCALE = async ({
-  commit
+  commit,
+  state
 }, locale) => {
-  checkConnection()
+  checkConnection(state)
   try {
     await kuzzle.auth.updateSelf({
       locale
@@ -181,18 +196,21 @@ export const FETCH_DOCUMENTS = async ({
   commit,
   state
 }, {
-    collection,
-    index,
-    query = {},
-    refresh = false,
-    size = 15
-  }) => {
-  subscribe(index, collection, { commit, state })
+  collection,
+  index,
+  query = {},
+  refresh = false,
+  size = 15
+}) => {
+  subscribe(index, collection, {
+    commit,
+    state
+  })
 
   commit('SET_INDEX', index)
   commit('SET_COLLECTION', collection)
 
-  checkConnection()
+  checkConnection(state)
   if (!state.documents.length || refresh) {
     try {
       const documents = await kuzzle.document.search(getIndex(index, state), collection, query, {
@@ -215,7 +233,7 @@ export const FETCH_NEXT_DOCUMENTS = async ({
   commit,
   state
 }) => {
-  checkConnection()
+  checkConnection(state)
   const documents = await state.lastResult.next()
   if (documents) {
     commit('SET_DOCUMENTS', documents)
@@ -224,8 +242,13 @@ export const FETCH_NEXT_DOCUMENTS = async ({
   return {}
 }
 
-export const FETCH_A_DOCUMENT = async ({ commit, state }, {
-  index, collection, id
+export const FETCH_A_DOCUMENT = async ({
+  commit,
+  state
+}, {
+  index,
+  collection,
+  id
 }) => {
   let document
 
@@ -237,11 +260,14 @@ export const FETCH_A_DOCUMENT = async ({ commit, state }, {
   }
 
   if (!document) {
-    checkConnection()
+    checkConnection(state)
     document = await kuzzle.document.get(index, collection, id)
 
     if (document) {
-      subscribe(index, collection, { commit, state }, id)
+      subscribe(index, collection, {
+        commit,
+        state
+      }, id)
     }
   }
 
@@ -249,13 +275,15 @@ export const FETCH_A_DOCUMENT = async ({ commit, state }, {
   return document
 }
 
-export const SAVE_DOCUMENT = async (_, {
+export const SAVE_DOCUMENT = async ({
+  state
+}, {
   collection,
   index,
   document,
   id
 }) => {
-  checkConnection()
+  checkConnection(state)
   if (!await kuzzle.document.validate(index, collection, document)) {
     throw new Error('Invalid document')
   }
@@ -266,14 +294,14 @@ export const SAVE_DOCUMENT = async (_, {
   }
 
   let result = await (
-    id
-      ? kuzzle.document.update(index, collection, id, document, {
-        refresh: 'wait_for',
-        retryOnConflict: 3
-      })
-      : kuzzle.document.create(index, collection, document, null, {
-        refresh: 'wait_for'
-      })
+    id ?
+    kuzzle.document.update(index, collection, id, document, {
+      refresh: 'wait_for',
+      retryOnConflict: 3
+    }) :
+    kuzzle.document.create(index, collection, document, null, {
+      refresh: 'wait_for'
+    })
   )
 
   return result
@@ -283,12 +311,12 @@ export const DELETE_DOCUMENT = async ({
   state,
   dispatch
 }, {
-    collection,
-    index,
-    id,
-    permanently = false
-  }) => {
-  checkConnection()
+  collection,
+  index,
+  id,
+  permanently = false
+}) => {
+  checkConnection(state)
 
   let result
   let document = state.documents.find(doc => doc._id === id)
@@ -298,7 +326,10 @@ export const DELETE_DOCUMENT = async ({
     document.$deleted_at = await kuzzle.server.now()
 
     result = await dispatch('SAVE_DOCUMENT', {
-      collection, index, id, document
+      collection,
+      index,
+      id,
+      document
     })
   }
 

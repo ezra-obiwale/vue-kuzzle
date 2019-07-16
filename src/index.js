@@ -30,33 +30,20 @@ export default {
     const events = config.events || {}
 
     for (let event in events) {
-      if (event !== 'connectionError') {
-        kuzzle.on(event, events[event])
-      }
+      kuzzle.on(event, events[event])
     }
 
-    const connect = async () => {
-      try {
-        await kuzzle.connect()
-        Vue.prototype._kuzzle_is_connected = true
-      } catch (error) {
-        if (events.connectionError) {
-          events.connectionError(error)
-        }
-      }
-    }
 
     Vue.prototype._kuzzle_is_connected = false
-    
-    connect()
-
     Vue.prototype.$kuzzle = kuzzle
     Vue.prototype._kuzzle_default_index = config.defaultIndex
     Vue.prototype._kuzzle_jwt_storage_key = config.jwtStorageKey
 
+    const timestamp = Date.now()
+
     if (config.store) {
       try {
-        config.store.registerModule(config.storeModuleName, store(Vue))
+        config.store.registerModule(config.storeModuleName, store(Vue, timestamp))
       } catch (e) {
         throw e
       }
@@ -66,5 +53,32 @@ export default {
       Vue.component('kuzzle-documents', KuzzleDocuments)
       Vue.component('kuzzle-document', KuzzleDocument)
     }
+
+    kuzzle.on('connected', () => {
+      config.store.commit(`${config.storeModuleName}/CONNECTED`, timestamp)
+    })
+
+    kuzzle.on('networkError', error => {
+      config.store.commit(`${config.storeModuleName}/CONNECTION_ERROR`, { stamp: timestamp, error })
+    })
+
+    kuzzle.on('reconnected', () => {
+      config.store.commit(`${config.storeModuleName}/CONNECTED`, timestamp)
+    })
+
+    kuzzle.on('diconnected', error => {
+      config.store.commit(`${config.storeModuleName}/CONNECTION_ERROR`, { stamp: timestamp, error })
+    })
+
+    const connect = async () => {
+      try {
+        await kuzzle.connect()
+        Vue.prototype._kuzzle_is_connected = true
+      } catch (error) {
+        config.store.commit(`${config.storeModuleName}/CONNECTION_ERROR`, { error, stamp: timestamp })
+      }
+    }
+
+    connect()
   }
 }
