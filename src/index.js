@@ -63,7 +63,7 @@ export default {
       config.store.commit(`${config.storeModuleName}/CONNECTED`, timestamp)
     })
 
-    kuzzle.on('diconnected', error => {
+    kuzzle.on('disconnected', error => {
       config.store.commit(`${config.storeModuleName}/CONNECTION_ERROR`, { stamp: timestamp, error })
     })
 
