@@ -55,7 +55,7 @@ export default {
           collection: this.collection,
           id: this.documentId
         })
-        // this.working = false
+        this.working = false
       }, (error) => {
         this.working = false
         this.$emit('fetchError', error)
