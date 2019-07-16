@@ -2,24 +2,29 @@ import * as actions from './actions'
 
 let kuzzle = null
 let jwtStorageKey = null
+let defaultIndex = null
+let connected = false
 
 export default Vue => {
   kuzzle = Vue.prototype.$kuzzle
   jwtStorageKey = Vue.prototype._kuzzle_jwt_storage_key
+  defaultIndex = Vue.prototype._kuzzle_default_index
+  connected = Vue.prototype._kuzzle_is_connected
 
   return actions
 }
 
 let subscriptionRoomId = null
 
+
 const getIndex = (index, state) => {
-  return index || state.index || Vue.prototype._kuzzle_default_index
+  return index || state.index || defaultIndex
 }
 
 let filteredId = null
 
 const subscribe = async (index, collection, { commit, state }, id = null) => {
-  if (state.index === index && state.collection === collection && filteredId === id) {
+  if (state.index === getIndex(index, state) && state.collection === collection && filteredId === id) {
     return
   }
   unsubscribe()
@@ -30,7 +35,7 @@ const subscribe = async (index, collection, { commit, state }, id = null) => {
       values: [id]
     }
   }
-  subscriptionRoomId = await kuzzle.realtime.subscribe(index, collection, filters, notification => {
+  subscriptionRoomId = await kuzzle.realtime.subscribe(getIndex(index, state), collection, filters, notification => {
     if (!notification.room.startsWith(subscriptionRoomId)) {
       return
     }
@@ -47,7 +52,7 @@ const unsubscribe = () => {
 }
 
 const checkConnection = () => {
-  if (!kuzzle.connected) {
+  if (!connected) {
     throw new Error('Server not connected')
   }
 }

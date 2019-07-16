@@ -38,6 +38,7 @@ export default {
     const connect = async () => {
       try {
         await kuzzle.connect()
+        Vue.prototype._kuzzle_is_connected = true
       } catch (error) {
         if (events.connectionError) {
           events.connectionError(error)
@@ -45,6 +46,8 @@ export default {
       }
     }
 
+    Vue.prototype._kuzzle_is_connected = true
+    
     connect()
 
     Vue.prototype.$kuzzle = kuzzle
