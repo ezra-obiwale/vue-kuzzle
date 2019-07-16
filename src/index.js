@@ -46,7 +46,7 @@ export default {
       }
     }
 
-    Vue.prototype._kuzzle_is_connected = true
+    Vue.prototype._kuzzle_is_connected = false
     
     connect()
 
