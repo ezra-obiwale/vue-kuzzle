@@ -4,7 +4,6 @@ import KuzzleDocument from './components/KuzzleDocument'
 
 export default {
   install(Vue, options = {}) {
-
     const config = {
       components: true,
       jwtStorageKey: 'jwt',
@@ -33,8 +32,6 @@ export default {
       kuzzle.on(event, events[event])
     }
 
-
-    Vue.prototype._kuzzle_is_connected = false
     Vue.prototype.$kuzzle = kuzzle
     Vue.prototype._kuzzle_default_index = config.defaultIndex
     Vue.prototype._kuzzle_jwt_storage_key = config.jwtStorageKey
@@ -73,7 +70,6 @@ export default {
     const connect = async () => {
       try {
         await kuzzle.connect()
-        Vue.prototype._kuzzle_is_connected = true
       } catch (error) {
         config.store.commit(`${config.storeModuleName}/CONNECTION_ERROR`, { error, stamp: timestamp })
       }
