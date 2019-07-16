@@ -1,55 +1,67 @@
-const {
-    Kuzzle,
-    WebSocket
-} = require('kuzzle-sdk');
+import store from './store'
+import KuzzleDocuments from './components/KuzzleDocuments'
+import KuzzleDocument from './components/KuzzleDocument'
 
 export default {
-    install: (Vue, options = {}) => {
-        options = {
-            namespace: 'kz',
-            ...options
-        }
-        if (!options.server_url) {
-            throw '"server_url" must be specified in the options'
-        }
+  install(Vue, options = {}) {
 
-        const createMethod = name => {
-            return `${options.namespace}${name}`
-                .replace(/^[A-Z]/, alpha => {
-                    return alpha.toLowerCase()
-                })
-        }
-
-        Vue.mixin({
-            beforeCreate() {
-                if (this.$options.kuzzle) {
-                    const conf = this.$options.kuzzle
-                    if (!conf.collection) {
-                        throw 'Kuzzle collection must be specified'
-                    }
-
-                    const kuzzle = new Kuzzle(
-                        new WebSocket(options.server_url)
-                    );
-                    this.$kuzzle = kuzzle
-
-                    if (conf.onNetworkError) {
-                        kuzzle.on('networkError', conf.onNetworkError);
-                    }
-
-                    this[createMethod('Browse')] = function () {
-                        kuzzle.dataCollectionFactory(conf.collection)
-                            .search()
-                    }
-
-                }
-            },
-            beforeDestroy() {
-                this.$kuzzle.disconnect()
-            }
-        })
-
-
-
+    const config = {
+      components: true,
+      jwtStorageKey: 'jwt',
+      port: 7512,
+      server: 'localhost',
+      ssl: false,
+      storeModuleName: 'kuzzle',
+      ...options
     }
+
+    const {
+      WebSocket,
+      Kuzzle
+    } = require('kuzzle-sdk')
+
+    const kuzzle = new Kuzzle(
+      new WebSocket(config.server, {
+        port: config.port,
+        sslConnection: config.ssl
+      })
+    )
+
+    const events = config.events || {}
+
+    for (let event in events) {
+      if (event !== 'connectionError') {
+        kuzzle.on(event, events[event])
+      }
+    }
+
+    const connect = async () => {
+      try {
+        await kuzzle.connect()
+      } catch (error) {
+        if (events.connectionError) {
+          events.connectionError(error)
+        }
+      }
+    }
+
+    connect()
+
+    Vue.prototype.$kuzzle = kuzzle
+    Vue.prototype._kuzzle_default_index = config.defaultIndex
+    Vue.prototype._kuzzle_jwt_storage_key = config.jwtStorageKey
+
+    if (config.store) {
+      try {
+        config.store.registerModule(config.storeModuleName, store(Vue))
+      } catch (e) {
+        throw e
+      }
+    }
+
+    if (config.components) {
+      Vue.component('kuzzle-documents', KuzzleDocuments)
+      Vue.component('kuzzle-document', KuzzleDocument)
+    }
+  }
 }

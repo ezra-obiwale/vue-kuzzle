@@ -1,12 +1,23 @@
 {
   "name": "@ezraobiwale/vue-kuzzle",
-  "version": "1.0.0",
-  "description": "Kuzzle implementation for vue js",
-  "main": "src/index.js",
-  "repository": "git@github.com:ezra-obiwale/vue-kuzzle.git",
-  "author": "Ezra Obiwale",
-  "license": "MIT",
+  "description": "A Kuzzle implementation for Vue",
+  "homepage": "https://github.com/ezra-obiwale/vue-kuzzle#readme",
+  "author": {
+    "name": "Ezra Obiwale",
+    "email": "contact@ezraobiwale.com"
+  },
   "dependencies": {
-    "kuzzle-sdk": "^6.1.0"
-  }
+    "kuzzle-sdk": "^6.1.4"
+  },
+  "license": "MIT",
+  "main": "src/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ezra-obiwale/vue-kuzzle.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "2.0.0",
+  "private": false
 }
