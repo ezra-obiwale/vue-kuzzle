@@ -127,9 +127,10 @@ export default {
           this.working = false
           done(this.documents, this.documentsCount)
         },
-        () => {
-          done()
+        error => {
           this.working = false
+          done()
+          this.$emit('loadError', error)
         }
       )
     },

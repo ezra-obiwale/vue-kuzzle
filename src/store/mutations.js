@@ -52,7 +52,7 @@ export const SET_COLLECTION = (state, collection) => {
   }
   state.collection = collection
   state.documents = []
-  state.document = null
+  state.currentDocument = null
   state.lastResult = null
 }
 
@@ -62,7 +62,7 @@ export const SET_INDEX = (state, index) => {
   }
   state.index = index
   state.documents = []
-  state.document = null
+  state.currentDocument = null
   state.lastResult = null
 }
 
@@ -121,7 +121,7 @@ export const REMOVE_DOCUMENT = (state, { index, collection, id }) => {
 
 export const RESET_DOCUMENTS = state => {
   state.documents = []
-  state.document = null
+  state.currentDocument = null
 }
 
 export const RESET = state => {

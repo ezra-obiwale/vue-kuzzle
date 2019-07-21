@@ -28,7 +28,7 @@ const subscribe = async (index, collection, {
   if (state.index === getIndex(index, state) && state.collection === collection && filteredId === id) {
     return
   }
-  unsubscribe()
+  unsubscribe(state)
   let filters = {}
   filteredId = id
   if (id) {
@@ -44,7 +44,7 @@ const subscribe = async (index, collection, {
   })
 }
 
-const unsubscribe = () => {
+const unsubscribe = state => {
   if (!subscriptionRoomId) {
     return
   }

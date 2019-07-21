@@ -46,24 +46,29 @@ export default {
     }
   },
   created () {
-    this.$set(this, 'document', this.defaultData)
-    if (this.documentId) {
-      this.working = true
-      this.tryCatch(async () => {
-        await this.FETCH_A_DOCUMENT({
-          index: this.index,
-          collection: this.collection,
-          id: this.documentId
-        })
-        this.working = false
-      }, (error) => {
-        this.working = false
-        this.$emit('fetchError', error)
-      })
-    }
+    this.$set(this, 'document', this.currentDocument || this.defaultData)
+    this.load()
   },
   methods: {
     ...mapActions('kuzzle', ['FETCH_A_DOCUMENT', 'SAVE_DOCUMENT', 'DELETE_DOCUMENT']),
+    load (done = () => {}) {
+      if (this.documentId) {
+        this.working = true
+        this.tryCatch(async () => {
+          await this.FETCH_A_DOCUMENT({
+            index: this.index,
+            collection: this.collection,
+            id: this.documentId
+          })
+          this.working = false
+          done()
+        }, (error) => {
+          this.working = false
+          done()
+          this.$emit('fetchError', error)
+        })
+      }
+    },
     remove () {
       if (!this.documentId) {
         return
