@@ -13,7 +13,8 @@ export const documents = state => {
   return state.documents.map(doc => {
     return {
       _id: doc._id,
-      ...doc._source
+      ...doc._source,
+      ...doc.content
     }
   })
 }

@@ -213,10 +213,19 @@ export const FETCH_DOCUMENTS = async ({
   checkConnection(state)
   if (!state.documents.length || refresh) {
     try {
-      const documents = await kuzzle.document.search(getIndex(index, state), collection, query, {
-        scroll: '1m',
-        size
-      })
+      let documents = null
+
+      if (collection === 'users') {
+        documents = await kuzzle.security.searchUsers(query, {
+          scroll: '1m',
+          size
+        })
+      } else {
+        documents = await kuzzle.document.search(getIndex(index, state), collection, query, {
+          scroll: '1m',
+          size
+        })
+      }
       if (refresh) {
         commit('RESET_DOCUMENTS')
       }
@@ -261,7 +270,11 @@ export const FETCH_A_DOCUMENT = async ({
 
   if (!document) {
     checkConnection(state)
-    document = await kuzzle.document.get(index, collection, id)
+    if (collection === 'users') {
+      document = await kuzzle.security.getUser(id)
+    } else {
+      document = await kuzzle.document.get(index, collection, id)
+    }
 
     if (document) {
       subscribe(index, collection, {
@@ -284,7 +297,7 @@ export const SAVE_DOCUMENT = async ({
   id
 }) => {
   checkConnection(state)
-  if (!await kuzzle.document.validate(index, collection, document)) {
+  if (collection !== 'users' && !await kuzzle.document.validate(index, collection, document)) {
     throw new Error('Invalid document')
   }
 
@@ -293,16 +306,28 @@ export const SAVE_DOCUMENT = async ({
     delete document._kuzzle_info
   }
 
-  let result = await (
-    id ?
-    kuzzle.document.update(index, collection, id, document, {
-      refresh: 'wait_for',
-      retryOnConflict: 3
-    }) :
-    kuzzle.document.create(index, collection, document, null, {
-      refresh: 'wait_for'
-    })
-  )
+  let result = null
+
+  if (collection === 'users') {
+    result = id ?
+      await kuzzle.security.updateUser(id, document, {
+        refresh: 'wait_for',
+        retryOnConflict: 3
+      }) : REGISTER({
+        state
+      }, document)
+  } else {
+    result = await (
+      id ?
+      kuzzle.document.update(index, collection, id, document, {
+        refresh: 'wait_for',
+        retryOnConflict: 3
+      }) :
+      kuzzle.document.create(index, collection, document, null, {
+        refresh: 'wait_for'
+      })
+    )
+  }
 
   return result
 }
@@ -334,9 +359,15 @@ export const DELETE_DOCUMENT = async ({
   }
 
   if (!result) {
-    await kuzzle.document.delete(index, collection, id, {
-      refresh: 'wait_for'
-    })
+    if (collection === 'users') {
+      await kuzzle.security.deleteUser(id, {
+        refresh: 'wait_for'
+      })
+    } else {
+      await kuzzle.document.delete(index, collection, id, {
+        refresh: 'wait_for'
+      })
+    }
     result = document
   }
 

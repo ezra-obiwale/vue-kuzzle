@@ -59,35 +59,37 @@ export default {
       this.prefillQuery(query)
 
       if (this.trashedOnly) {
-        query.query.bool.must = [{
+        if (!query.query.bool.must) {
+          query.query.bool.must = []
+        }
+        query.query.bool.must.push({
           exists: {
             field: '$deleted_at'
           }
-        }]
+        })
       } else if (!this.withTrashed) {
-        query.query.bool.must_not = [{
+        if (!query.query.bool.must_not) {
+          query.query.bool.must_not = []
+        }
+        query.query.bool.must_not.push({
           exists: {
             field: '$deleted_at'
           }
-        }]
+        })
       }
 
       if (this.filter.length) {
-        query.query.bool.filter = this.filter
+        if (!query.query.bool.filter) {
+          query.query.bool.filter = []
+        }
+        query.query.bool.filter = [...this.filter, ...query.query.bool.filter]
       }
       if (this.search) {
-        query.query.bool.query_string = {
-          query: this.search
+        if (!query.query.bool.query_string) {
+          query.query.bool.query_string = {}
         }
+        query.query.bool.query_string.query = this.search
       }
-      // let common = {}
-      // for (let term in this.search) {
-      //   const query = this.search[term]
-      //   common[term] = typeof query === 'object'
-      //     ? query
-      //     : { query, cutoff_frequency: 0.001 }
-      // }
-      // query.query.bool.common = common
 
       return query
     }
@@ -127,10 +129,9 @@ export default {
           this.working = false
           done(this.documents, this.documentsCount)
         },
-        error => {
-          this.working = false
+        () => {
           done()
-          this.$emit('loadError', error)
+          this.working = false
         }
       )
     },
